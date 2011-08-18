@@ -1,6 +1,3 @@
-require "right_aws"
-ec2 = RightAws::Ec2.new "AKIAJOJJD4ZFTSFFHHEQ", "P8QA2TdZv1tEBlBc6qDxKLIUytg0pNapHb+ECvkf"
-
 def create_sc_group ec2, name
 
   begin
@@ -18,4 +15,3 @@ def create_sc_group ec2, name
 
 end
 
-create_group ec2, "solomon"
