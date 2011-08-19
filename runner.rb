@@ -21,27 +21,9 @@ puts "Found code-review-new image #{image_id}"
 instance = ec2.launch_instances( image_id, :group_ids => user, :key_name => "webserver", :instance_type => "t1.micro" )[0]
 
 id = instance[:aws_instance_id]  
+wait_for_ip ec2, id
+
 ec2.create_tags id, { "Name" => user }
 
-while true do
-
-
-  state = ec2.describe_instances(id)[0][:aws_state]
-  print "Instance #{id}, state #{state}\n"
-
-  if state == 'running' 
-    
-    print "Instance started #{id}.\n"
-
-    require "socket"
-
-    run_on_instance ec2, id, repo, user
-    puts "Done"
-
-    break
-
-  end  
-
-  sleep 10
-
-end
+run_on_instance ec2, id, repo, user
+puts "Done"

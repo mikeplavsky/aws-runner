@@ -17,6 +17,8 @@ end
 
 def wait_ssh ip
 
+  raise "Nil ip" unless ip
+
   while true
 
     begin
@@ -36,10 +38,13 @@ def wait_ssh ip
   end
 end
 
+def get_ip ec2, id
+  return ec2.describe_instances(id)[0][:private_ip_address] 
+end
+
 def run_on_instance ec2, id, repo, user, script = "finder.sh"
 
-  instance = ec2.describe_instances(:filters => {"instance-id" => id })[0]
-  ip = instance[:private_ip_address]
+  ip = get_ip ec2, id
 
   puts "Instance IP Address #{ip}"
   wait_ssh ip
@@ -68,3 +73,20 @@ def copy_results identiy, ip, user
 
 end
 
+def wait_for_ip ec2, id
+
+  while true
+      
+    ip = get_ip ec2, id
+
+    if ip
+      puts "#{id} got ip #{ip}"
+      break
+    end
+
+    puts "#{id} ip address is not yet available"
+    sleep 10
+
+  end
+
+end  
