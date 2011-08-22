@@ -1,16 +1,16 @@
-ip = ARGV[0]
-repo = ARGV[1]
+ip = "10.254.139.214"
 
 print "connecting to #{ip}\n"
 
 require 'net/ssh'
+require 'net/scp'
+require '../core.rb'
 
-Net::SSH.start ip, 'ubuntu', :keys => ['/home/ubuntu/.ssh/id_rsa'], :keys_only => true  do |ssh|
-  
-  ssh.exec! "/home/ubuntu/finder.sh #{repo}" do |channel, stream, data|
-    puts data
-  end 
+require "logger"
+@logger = Logger.new STDOUT
 
+Net::SSH.start ip, 'ubuntu', :keys => ['/home/ubuntu/.ssh/webserver.pem'], :keys_only => true  do |ssh|
+  download ssh, "hunter", "python.duplication.html"
 end
 
 

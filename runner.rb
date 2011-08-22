@@ -10,8 +10,7 @@ end
 user = ARGV[0]
 repo = ARGV[1]
 
-require './utils.rb'
-include Utils
+require './core.rb'
 
 run user, repo do |ec2, image_id, sec_group|
 
