@@ -6,7 +6,10 @@ def run user, repo
 
     require 'logger'
 
-    @logger = Logger.new "/home/ubuntu/#{user}/log.txt"
+    fn = "/home/ubuntu/#{user}/log.txt"
+    `rm #{fn}`
+
+    @logger = Logger.new fn 
     @logger.level = Logger::DEBUG
 
     ec2 = RightAws::Ec2.new "AKIAJOJJD4ZFTSFFHHEQ", "P8QA2TdZv1tEBlBc6qDxKLIUytg0pNapHb+ECvkf", :logger => @logger
@@ -22,6 +25,7 @@ def run user, repo
     ec2.create_tags id, { "Name" => user }
     run_on_instance ec2, id, repo, user
 
+    info ec2.terminate_instances(id)
     info "done"
 
   rescue => e
@@ -104,17 +108,36 @@ def run_on_instance ec2, id, repo, user, script = "finder.sh"
 
   info "Instance IP Address #{ip}"
   wait_ssh ip
-  
-  info "Starting #{script} on #{ip}"
 
   require 'net/ssh' 
   require 'net/scp' 
 
   Net::SSH.start ip, "ubuntu", :keys => [identity], :keys_only => true do |ssh|  
 
-    ssh.exec! "~/codereview/#{script} #{repo}" do |channel, stream, data|
-      info data
+    info "Uploading #{script} to #{ip}"
+    ssh.scp.upload! "/home/ubuntu/codereview/#{script}", "/home/ubuntu/codereview"
+
+    info "Starting #{script} on #{ip}"
+    ssh.open_channel do |ch| 
+
+      ch.exec "~/codereview/#{script} #{repo}" 
+
+      d = []
+        
+      ch.on_data do |ch,data|
+        d << data
+      end
+
+      ch.on_process do |ch|
+        if d.length > 20 
+          info d.last
+          d = []
+        end  
+      end
+
     end
+
+    ssh.loop
 
     download ssh, user, "python.duplication.html"
     download ssh, user, "js.duplication.html"
@@ -125,10 +148,8 @@ end
 
 def download ssh, user, file 
 
-  ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}" do |ch,name,recv,total|
-    info "downloading #{name}: #{recv}/#{total}"
-  end
-  
+  ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}"
+
 end
 
 def wait_for_ip ec2, id
