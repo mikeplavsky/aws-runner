@@ -2,17 +2,31 @@ def info str
   @logger.info str
 end
 
+def get_ec2
+
+  require "yaml"
+
+  cfg = YAML.load( File.read( File.join File.dirname( __FILE__ ), "config.yml" ))  
+  ec2 = RightAws::Ec2.new cfg["access_key_id"], cfg["secret_access_key"], :logger => @logger
+  
+end
+
+def config_logger user
+
+  require 'logger'
+
+  fn = "/home/ubuntu/#{user}/log.txt"
+  `rm #{fn}`
+
+  @logger = Logger.new fn 
+  @logger.level = Logger::DEBUG
+  
+end
+
 def run user, repo
 
-    require 'logger'
-
-    fn = "/home/ubuntu/#{user}/log.txt"
-    `rm #{fn}`
-
-    @logger = Logger.new fn 
-    @logger.level = Logger::DEBUG
-
-    ec2 = RightAws::Ec2.new "AKIAJOJJD4ZFTSFFHHEQ", "P8QA2TdZv1tEBlBc6qDxKLIUytg0pNapHb+ECvkf", :logger => @logger
+    config_logger user
+    ec2 = get_ec2
 
     create_sc_group ec2, user
 
@@ -118,26 +132,7 @@ def run_on_instance ec2, id, repo, user, script = "finder.sh"
     ssh.scp.upload! "/home/ubuntu/codereview/#{script}", "/home/ubuntu/codereview"
 
     info "Starting #{script} on #{ip}"
-    ssh.open_channel do |ch| 
-
-      ch.exec "~/codereview/#{script} #{repo}" 
-
-      d = []
-        
-      ch.on_data do |ch,data|
-        d << data
-      end
-
-      ch.on_process do |ch|
-        if d.length > 20 
-          info d.last
-          d = []
-        end  
-      end
-
-    end
-
-    ssh.loop
+    ssh.exec! "~/codereview/#{script} #{repo}" 
 
     download ssh, user, "python.duplication.html"
     download ssh, user, "js.duplication.html"
@@ -148,6 +143,7 @@ end
 
 def download ssh, user, file 
 
+  info "Downloading #{file}"
   ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}"
 
 end
