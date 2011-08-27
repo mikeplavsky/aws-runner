@@ -6,8 +6,8 @@ def get_ec2
 
   require "yaml"
 
-  cfg = YAML.load( File.read( File.join File.dirname( __FILE__ ), "config.yml" ))  
-  ec2 = RightAws::Ec2.new cfg["access_key_id"], cfg["secret_access_key"], :logger => @logger
+  @cfg = YAML.load( File.read( File.join File.dirname( __FILE__ ), "config.yml" ))  
+  ec2 = RightAws::Ec2.new @cfg["access_key_id"], @cfg["secret_access_key"], :logger => @logger
   
 end
 
@@ -93,10 +93,12 @@ def wait_ssh ip
 
   while true
 
-    res = `ssh -i #{identity} ubuntu@#{ip}  ls`
-    info "waiting for ssh: got from #{ip} this: #{res}"
+    res = `ssh -i #{identity} ubuntu@#{ip}  uptime`
+    info "waiting for ssh #{ip}: #{res}"
+
+    res =~ /load average: (\d.\d\d)/
     
-    if res == ""
+    if not $1 or Float($1) > 0.1
       sleep 10          
     else 
 
@@ -113,7 +115,7 @@ def get_ip ec2, id
 end
 
 def identity
-  '/home/ubuntu/.ssh/webserver.pem'
+  @cfg["ssh_identity"]
 end
 
 def run_on_instance ec2, id, repo, user, script = "finder.sh"
