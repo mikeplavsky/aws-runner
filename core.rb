@@ -94,7 +94,7 @@ def wait_ssh ip
   while true
 
     res = `ssh -i #{identity} ubuntu@#{ip}  uptime`
-    info "waiting for ssh #{ip}: #{res}"
+    info "ssh on #{ip}: #{res}"
 
     res =~ /load average: (\d.\d\d)/
     
@@ -139,6 +139,7 @@ def run_on_instance ec2, id, repo, user, script = "finder.sh"
     download ssh, user, "python.duplication.html"
     download ssh, user, "js.duplication.html"
 
+
   end
 
 end
@@ -147,6 +148,12 @@ def download ssh, user, file
 
   info "Downloading #{file}"
   ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}"
+
+  res  = `grep duplicates /home/ubuntu/#{user}/#{file}`.split[6].gsub /[()]/, ""
+  msg = "#{user} #{file}: #{res}"
+
+  info msg 
+  puts msg
 
 end
 
