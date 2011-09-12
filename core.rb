@@ -39,7 +39,6 @@ def run user, repo
     ec2.create_tags id, { "Name" => user }
     run_on_instance ec2, id, repo, user
 
-    info ec2.terminate_instances(id)
     info "done"
 
   rescue => e
@@ -149,8 +148,10 @@ def download ssh, user, file
   info "Downloading #{file}"
   ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}"
 
-  res  = `grep duplicates /home/ubuntu/#{user}/#{file}`.split[6].gsub /[()]/, ""
-  msg = "#{user} #{file}: #{res}"
+  dups  = `grep duplicates /home/ubuntu/#{user}/#{file}`.split[6].gsub /[()]/, ""
+  errs  = `grep "Error: can't parse" /home/ubuntu/#{user}/#{file}` != ""
+
+  msg = "#{user} #{file}: #{dups}, Errors: #{errs}"
 
   info msg 
   puts msg
