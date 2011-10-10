@@ -28,12 +28,10 @@ def run user, repo
     config_logger user
     ec2 = get_ec2
 
-    create_sc_group ec2, user
-
     image_id = ec2.describe_images(:filters => {'is-public' => false, 'name' => 'code-review-new'})[0][:aws_id]
     info "Found code-review-new image #{image_id}"
 
-    id = yield ec2, image_id, user
+    id = yield ec2, image_id
     
     wait_for_ip ec2, id
     ec2.create_tags id, { "Name" => user }
@@ -67,23 +65,6 @@ def wait_for_spot_instance ec2, spot_request_id
 
   end
   
-end
-
-def create_sc_group ec2, name
-
-  begin
-    ec2.delete_security_group name
-  rescue RightAws::AwsError => err
-    info err
-  end
-
-  ec2.create_security_group name
-
-  require 'socket'
-
-  ip = IPSocket.getaddress Socket.gethostname()
-  ec2.authorize_security_group_IP_ingress name, 22, 22, 'tcp', "#{ip}/32"
-
 end
 
 def wait_ssh ip
