@@ -130,10 +130,10 @@ def run_on_instance ec2, id, repo
     ssh.exec! "git clone #{repo} /tmp/#{where}" 
 
     info "Uploading #{config} to #{ip}"
-    ssh.scp.upload! "./config.yml" "/home/ubuntu/codereview"
+    ssh.scp.upload! "./config.yml" "/tmp/#{where}"
 
     info "Executing run.sh script on #{ip}"
-    ssh.exec! "cd /tmp/#{where};./run.sh #{repo}"
+    ssh.exec! "cd /tmp/#{where}; ./run.sh"
 
   end
 
