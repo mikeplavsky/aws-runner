@@ -2,20 +2,25 @@ def info str
   @logger.info str
 end
 
-def get_ec2
+def load_cfg
 
   require "yaml"
+  @cfg = YAML.load( File.read( "./config.yml" ) )  
 
-  @cfg = YAML.load( File.read( File.join File.dirname( __FILE__ ), "config.yml" ))  
+end
+
+def get_ec2
+
+  cfg = get_cfg
   ec2 = RightAws::Ec2.new @cfg["access_key_id"], @cfg["secret_access_key"], :logger => @logger
   
 end
 
-def config_logger user
+def config_logger where
 
   require 'logger'
 
-  fn = "/home/ubuntu/#{user}/log.txt"
+  fn = "/tmp/#{where}/log.txt"
   `rm #{fn}`
 
   @logger = Logger.new fn 
@@ -23,10 +28,19 @@ def config_logger user
   
 end
 
-def run user, repo
+def repo_name repo
+  /:(.*).git/.match( repo )[1].sub '/', '@'
+end
 
-    config_logger user
+def run 
+
+    where = repo_name(repo)
+
+    load_cfg
+    config_logger where
+
     ec2 = get_ec2
+    repo = @cfg["repo"]
 
     image_id = ec2.describe_images(:filters => {'is-public' => false, 'name' => 'code-review-new'})[0][:aws_id]
     info "Found code-review-new image #{image_id}"
@@ -34,8 +48,8 @@ def run user, repo
     id = yield ec2, image_id
     
     wait_for_ip ec2, id
-    ec2.create_tags id, { "Name" => user }
-    run_on_instance ec2, id, repo, user
+    ec2.create_tags id, { "Name" => where}
+    run_on_instance ec2, id, repo 
 
     info "done"
 
@@ -98,7 +112,9 @@ def identity
   @cfg["ssh_identity"]
 end
 
-def run_on_instance ec2, id, repo, user, script = "finder.sh"
+def run_on_instance ec2, id, repo 
+
+  where = repo_name repo
 
   ip = get_ip ec2, id
 
@@ -110,32 +126,16 @@ def run_on_instance ec2, id, repo, user, script = "finder.sh"
 
   Net::SSH.start ip, "ubuntu", :keys => [identity], :keys_only => true do |ssh|  
 
-    info "Uploading #{script} to #{ip}"
-    ssh.scp.upload! "/home/ubuntu/codereview/#{script}", "/home/ubuntu/codereview"
+    info "Cloning #{repo} on #{ip}"
+    ssh.exec! "git clone #{repo} /tmp/#{where}" 
 
-    info "Starting #{script} on #{ip}"
-    ssh.exec! "~/codereview/#{script} #{repo}" 
+    info "Uploading #{config} to #{ip}"
+    ssh.scp.upload! "./config.yml" "/home/ubuntu/codereview"
 
-    download ssh, user, "python.duplication.html"
-    download ssh, user, "js.duplication.html"
-
+    info "Executing run.sh script on #{ip}"
+    ssh.exec! "cd /tmp/#{where};./run.sh #{repo}"
 
   end
-
-end
-
-def download ssh, user, file 
-
-  info "Downloading #{file}"
-  ssh.scp.download! "/home/ubuntu/#{file}", "/home/ubuntu/#{user}"
-
-  dups  = `grep duplicates /home/ubuntu/#{user}/#{file}`.split[6].gsub /[()]/, ""
-  errs  = `grep "Error: can't parse" /home/ubuntu/#{user}/#{file}` != ""
-
-  msg = "#{user} #{file}: #{dups}, Errors: #{errs}"
-
-  info msg 
-  puts msg
 
 end
 
