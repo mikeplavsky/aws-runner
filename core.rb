@@ -42,8 +42,8 @@ def run
     ec2 = get_ec2
     repo = @cfg["repo"]
 
-    image_id = ec2.describe_images(:filters => {'is-public' => false, 'name' => 'code-review-new'})[0][:aws_id]
-    info "Found code-review-new image #{image_id}"
+    image_id = ec2.describe_images(:filters => {'is-public' => false, 'name' => @cfg['ami-name']})[0][:aws_id]
+    info "Found #{@cfg['ami-name']} image #{image_id}"
 
     id = yield ec2, image_id
     
