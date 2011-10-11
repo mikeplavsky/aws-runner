@@ -133,7 +133,7 @@ def run_on_instance ec2, id, repo
     ssh.scp.upload! "./config.yml" "/tmp/#{where}"
 
     info "Executing run.sh script on #{ip}"
-    ssh.exec! "cd /tmp/#{where}; ./run.sh"
+    ssh.exec! "cd /tmp/#{where}; ./run.rb"
 
   end
 
