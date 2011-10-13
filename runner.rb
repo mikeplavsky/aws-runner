@@ -11,7 +11,7 @@ run repo do |ec2, image_id|
   
     :group_ids => "default",
     :key_name => "webserver",
-    :instance_type => "c1.medium" 
+    :instance_type => "t1.micro" 
 
   )[0]
 

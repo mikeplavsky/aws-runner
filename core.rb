@@ -20,7 +20,10 @@ def config_logger where
 
   require 'logger'
 
-  fn = "/tmp/#{where}/log.txt"
+  path = '/tmp/#{where}'
+  `[ ! -x #{path} ] && mkdir #{path}`
+
+  fn = "#{path}/log.txt"
   `rm #{fn}`
 
   @logger = Logger.new fn 
