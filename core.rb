@@ -10,21 +10,13 @@ def load_cfg
 end
 
 def get_ec2
-
-  cfg = get_cfg
   ec2 = RightAws::Ec2.new @cfg["access_key_id"], @cfg["secret_access_key"], :logger => @logger
-  
 end
 
-def config_logger where
+def config_logger 
 
   require 'logger'
-
-  path = '/tmp/#{where}'
-  `[ ! -x #{path} ] && mkdir #{path}`
-
-  fn = "#{path}/log.txt"
-  `rm #{fn}`
+  fn = "./log.txt"
 
   @logger = Logger.new fn 
   @logger.level = Logger::DEBUG
@@ -37,13 +29,13 @@ end
 
 def run 
 
-    where = repo_name(repo)
-
     load_cfg
-    config_logger where
+    config_logger
 
     ec2 = get_ec2
     repo = @cfg["repo"]
+
+    where = repo_name(repo)
 
     image_id = ec2.describe_images(:filters => {'is-public' => false, 'name' => @cfg['ami-name']})[0][:aws_id]
     info "Found #{@cfg['ami-name']} image #{image_id}"
@@ -132,8 +124,8 @@ def run_on_instance ec2, id, repo
     info "Cloning #{repo} on #{ip}"
     ssh.exec! "git clone #{repo} /tmp/#{where}" 
 
-    info "Uploading #{config} to #{ip}"
-    ssh.scp.upload! "./config.yml" "/tmp/#{where}"
+    info "Uploading ./config.yml to #{ip}"
+    ssh.scp.upload! "./config.yml", "/tmp/#{where}"
 
     info "Executing run.sh script on #{ip}"
     ssh.exec! "cd /tmp/#{where}; ./run.rb"

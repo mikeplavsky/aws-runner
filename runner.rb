@@ -1,9 +1,12 @@
 #!/usr/bin/ruby
 
-require "right_aws"
-require './core.rb'
+path = File.join File.dirname( __FILE__ )
+$LOAD_PATH.push path
 
-run repo do |ec2, image_id|
+require "right_aws"
+require 'core'
+
+run do |ec2, image_id|
 
   instance = ec2.launch_instances(
   
