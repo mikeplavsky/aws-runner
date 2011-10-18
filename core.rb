@@ -29,9 +29,6 @@ end
 
 def run 
 
-    load_cfg
-    config_logger
-
     ec2 = get_ec2
     repo = @cfg["repo"]
 
